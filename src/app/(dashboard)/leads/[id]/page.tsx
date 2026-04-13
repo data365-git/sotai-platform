@@ -11,6 +11,7 @@ import { ReviewPanel } from '@/components/lead-detail/ReviewPanel'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { LoadingSkeleton } from '@/components/common/LoadingSkeleton'
 import { formatDuration, formatDate, getInitials, getAvatarGradient } from '@/lib/utils'
+import { useLocale } from '@/hooks/useLocale'
 
 const AudioPlayer = dynamic(
   () => import('@/components/lead-detail/AudioPlayer').then((m) => m.AudioPlayer),
@@ -22,6 +23,7 @@ export default function LeadDetailPage() {
   const router = useRouter()
   const id = params.id as string
 
+  const { t } = useLocale()
   const { data: lead, isLoading: leadLoading } = useLeadDetail(id)
   const { data: allChecklists = [] } = useChecklists()
 
@@ -63,12 +65,12 @@ export default function LeadDetailPage() {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: 12 }}>
         <div style={{ fontSize: 48 }}>🔍</div>
-        <p style={{ color: '#64748b', fontSize: 14 }}>Lead not found</p>
+        <p style={{ color: '#64748b', fontSize: 14 }}>{t.common.notFound}</p>
         <button
           onClick={() => router.push('/')}
           style={{ padding: '8px 16px', borderRadius: 8, background: '#6366f1', color: 'white', border: 'none', cursor: 'pointer', fontSize: 13 }}
         >
-          Back to Leads
+          {t.common.backToLeads}
         </button>
       </div>
     )
@@ -108,7 +110,7 @@ export default function LeadDetailPage() {
           }}
         >
           <ArrowLeft size={14} />
-          Leads
+          {t.leadDetail.back}
         </button>
 
         {/* Avatar + Name */}
@@ -133,14 +135,14 @@ export default function LeadDetailPage() {
           border: '1px solid rgba(0,0,0,0.06)',
           borderRadius: 10, padding: '12px 14px', marginBottom: 16,
         }}>
-          <InfoRow icon={<Phone size={12} />} label="Phone" value={lead.phone} />
+          <InfoRow icon={<Phone size={12} />} label={t.leadDetail.phone} value={lead.phone} />
           {latestCallDate && (
-            <InfoRow icon={<Calendar size={12} />} label="Last Call" value={formatDate(latestCallDate)} />
+            <InfoRow icon={<Calendar size={12} />} label={t.leadDetail.lastCall} value={formatDate(latestCallDate)} />
           )}
           {totalDuration > 0 && (
-            <InfoRow icon={<Clock size={12} />} label="Total" value={formatDuration(totalDuration)} />
+            <InfoRow icon={<Clock size={12} />} label={t.leadDetail.total} value={formatDuration(totalDuration)} />
           )}
-          <InfoRow icon={<PhoneIcon size={12} />} label="Calls" value={`${recordings.length} recording${recordings.length !== 1 ? 's' : ''}`} />
+          <InfoRow icon={<PhoneIcon size={12} />} label={t.leadDetail.calls} value={`${recordings.length} ${recordings.length !== 1 ? t.leadDetail.calls_few : t.leadDetail.calls}`} />
         </div>
 
         <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', marginBottom: 16 }} />
@@ -148,7 +150,7 @@ export default function LeadDetailPage() {
         {/* Sales Rep */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-            Sales Rep
+            {t.leadDetail.salesRep}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
@@ -171,7 +173,7 @@ export default function LeadDetailPage() {
         {lead.bitrix24Status && (
           <div style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
-              Lead Status
+              {t.leadDetail.leadStatus}
             </div>
             <span style={{ fontSize: 12, color: '#94a3b8' }}>{lead.bitrix24Status}</span>
           </div>
@@ -190,7 +192,7 @@ export default function LeadDetailPage() {
           }}
         >
           <ExternalLink size={13} />
-          Open in Bitrix24
+          {t.leadDetail.openBitrix}
         </button>
 
         <div style={{ marginTop: 'auto', paddingTop: 32 }}>
@@ -249,7 +251,7 @@ export default function LeadDetailPage() {
         <div style={{ padding: '20px 24px 32px' }}>
           {/* Audio player */}
           <div style={{ marginBottom: 24 }}>
-            <SectionHeader title={recordings.length > 1 ? `Call ${selectedRecordingIdx + 1} Recording` : 'Call Recording'} />
+            <SectionHeader title={t.leadDetail.callRecording} />
             {selectedRecording?.audioUrl ? (
               <AudioPlayer
                 key={selectedRecording.id}
@@ -260,7 +262,7 @@ export default function LeadDetailPage() {
               />
             ) : (
               <div style={{ padding: '24px', textAlign: 'center', background: '#f1f5f9', borderRadius: 12, border: '1px solid rgba(0,0,0,0.06)' }}>
-                <p style={{ color: '#64748b', fontSize: 13 }}>No audio recording available</p>
+                <p style={{ color: '#64748b', fontSize: 13 }}>{t.leadDetail.noAudio}</p>
               </div>
             )}
           </div>
@@ -268,7 +270,7 @@ export default function LeadDetailPage() {
           {/* Transcript */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <SectionHeader title="Transcript" inline />
+              <SectionHeader title={t.leadDetail.transcript} inline />
               {transcript && (
                 <div style={{ display: 'flex', gap: 4 }}>
                   {(transcript.detectedLanguages || [transcript.language]).map((lang: string) => (
@@ -281,7 +283,7 @@ export default function LeadDetailPage() {
                     </span>
                   ))}
                   <span style={{ fontSize: 10, color: '#64748b', padding: '2px 4px', display: 'flex', alignItems: 'center' }}>
-                    {transcriptLines.length} lines
+                    {transcriptLines.length} {t.leadDetail.lines}
                   </span>
                 </div>
               )}
@@ -306,7 +308,7 @@ export default function LeadDetailPage() {
       <div style={{ height: '100vh', overflowY: 'auto', background: '#f8fafc' }}>
         <div style={{ padding: '20px 0 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: 0, padding: '0 20px 16px' }}>
-            Quality Review
+            {t.leadDetail.qualityReview}
           </h2>
         </div>
 

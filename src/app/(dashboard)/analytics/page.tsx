@@ -10,6 +10,7 @@ import { useAnalytics } from '@/hooks/useAnalytics'
 import { AnimatedNumber } from '@/components/common/AnimatedNumber'
 import { ScoreRing } from '@/components/common/ScoreRing'
 import { LoadingSkeleton } from '@/components/common/LoadingSkeleton'
+import { useLocale } from '@/hooks/useLocale'
 
 const COLORS = ['#6366f1', '#7c3aed', '#06b6d4', '#ec4899', '#f59e0b', '#14b8a6']
 
@@ -65,6 +66,7 @@ function KPICard({ title, value, suffix, icon, color, subtitle }: {
 
 export default function AnalyticsPage() {
   const router = useRouter()
+  const { t } = useLocale()
   const { data, isLoading } = useAnalytics()
 
   if (isLoading) {
@@ -99,10 +101,10 @@ export default function AnalyticsPage() {
         </div>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', margin: 0, letterSpacing: '-0.3px' }}>
-            Analytics
+            {t.analytics.title}
           </h1>
           <p style={{ fontSize: 12, color: '#64748b', margin: 0, marginTop: 1 }}>
-            Performance overview & trends
+            {t.analytics.subtitle}
           </p>
         </div>
       </div>
@@ -110,41 +112,41 @@ export default function AnalyticsPage() {
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
         <KPICard
-          title="Total Reviews"
+          title={t.analytics.kpi.totalReviews}
           value={kpis?.totalCalls || 0}
           icon={<Users size={18} />}
           color="#6366f1"
-          subtitle="calls analyzed"
+          subtitle={t.analytics.kpi.analyzed}
         />
         <KPICard
-          title="Avg Score"
+          title={t.analytics.kpi.avgScore}
           value={kpis?.avgScore || 0}
           suffix="%"
           icon={<TrendingUp size={18} />}
           color="#10b981"
-          subtitle="across all reps"
+          subtitle={t.analytics.kpi.acrossAllReps}
         />
         <KPICard
-          title="Pass Rate"
+          title={t.analytics.kpi.passRate}
           value={kpis?.passRate || 0}
           suffix="%"
           icon={<CheckCircle size={18} />}
           color="#f59e0b"
-          subtitle="scoring ≥70%"
+          subtitle={t.analytics.kpi.scoringAbove}
         />
         <div style={{
           background: '#f1f5f9', border: '1px solid rgba(0,0,0,0.07)',
           borderRadius: 12, padding: '20px 22px',
         }}>
           <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-            Most Active Rep
+            {t.analytics.kpi.mostActiveRep}
           </div>
           <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
             {kpis?.mostActiveRep?.name || kpis?.mostActiveRep || 'N/A'}
           </div>
           {kpis?.mostActiveRep?.count && (
             <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
-              {kpis.mostActiveRep.count} calls reviewed
+              {kpis.mostActiveRep.count} {t.analytics.kpi.calls}
             </div>
           )}
         </div>
@@ -155,7 +157,7 @@ export default function AnalyticsPage() {
         {/* Rep Performance Bar Chart */}
         <div style={{ background: '#f1f5f9', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 12, padding: '20px' }}>
           <h3 style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', margin: '0 0 16px' }}>
-            Rep Performance
+            {t.analytics.repPerformance}
           </h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={repPerformance} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
@@ -187,7 +189,7 @@ export default function AnalyticsPage() {
         {/* Score Trend */}
         <div style={{ background: '#f1f5f9', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 12, padding: '20px' }}>
           <h3 style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', margin: '0 0 16px' }}>
-            Score Trend (Last 30 days)
+            {t.analytics.scoreTrend}
           </h3>
           {filteredTrend.length > 1 ? (
             <ResponsiveContainer width="100%" height={220}>
@@ -228,7 +230,7 @@ export default function AnalyticsPage() {
             </ResponsiveContainer>
           ) : (
             <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <p style={{ color: '#64748b', fontSize: 13 }}>Not enough data for trend chart</p>
+              <p style={{ color: '#64748b', fontSize: 13 }}>{t.analytics.notEnoughData}</p>
             </div>
           )}
         </div>
@@ -240,11 +242,11 @@ export default function AnalyticsPage() {
         <div style={{ background: '#f1f5f9', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 12, padding: '20px' }}>
           <h3 style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
             <AlertCircle size={14} color="#ef4444" />
-            Top Failing Criteria
+            {t.analytics.topFailingCriteria}
           </h3>
           {(failingItems || []).length === 0 ? (
             <div style={{ padding: '32px', textAlign: 'center', color: '#64748b', fontSize: 13 }}>
-              No failing items found
+              {t.analytics.noFailingItems}
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={240}>
@@ -274,7 +276,7 @@ export default function AnalyticsPage() {
         {/* Rep cards */}
         <div style={{ background: '#f1f5f9', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 12, padding: '20px' }}>
           <h3 style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', margin: '0 0 16px' }}>
-            Team Overview
+            {t.analytics.teamOverview}
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {(reps || []).map((rep: any, i: number) => (
@@ -295,7 +297,7 @@ export default function AnalyticsPage() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{rep.name}</div>
                   <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                    {rep.callCount} call{rep.callCount !== 1 ? 's' : ''} reviewed
+                    {rep.callCount} {t.analytics.kpi.calls}
                   </div>
                 </div>
                 <div style={{
@@ -319,8 +321,7 @@ export default function AnalyticsPage() {
         background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.12)',
         borderRadius: 8, fontSize: 12, color: '#64748b',
       }}>
-        Analytics are based on reviewed and AI-ready calls only.
-        Connect Bitrix24 to see real-time data.
+        {t.analytics.footerNote}
       </div>
     </div>
   )

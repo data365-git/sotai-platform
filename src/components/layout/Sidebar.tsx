@@ -5,19 +5,21 @@ import { usePathname } from 'next/navigation'
 import { Phone, CheckSquare, BarChart3, Settings, Radio } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { LocaleSwitcher } from './LocaleSwitcher'
-
-const MAIN_NAV = [
-  { href: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { href: '/', label: 'Leads', icon: Phone },
-  { href: '/checklists', label: 'Checklists', icon: CheckSquare },
-]
-
-const BOTTOM_NAV = [
-  { href: '/settings', label: 'Settings', icon: Settings },
-]
+import { useLocale } from '@/hooks/useLocale'
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { t } = useLocale()
+
+  const MAIN_NAV = [
+    { href: '/analytics', label: t.nav.analytics, icon: BarChart3 },
+    { href: '/', label: t.nav.leads, icon: Phone },
+    { href: '/checklists', label: t.nav.checklists, icon: CheckSquare },
+  ]
+
+  const BOTTOM_NAV = [
+    { href: '/settings', label: t.nav.settings, icon: Settings },
+  ]
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/'
@@ -74,7 +76,7 @@ export function Sidebar() {
         <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
           <div>
-            <div className="text-xs font-semibold text-amber-400">Demo Mode</div>
+            <div className="text-xs font-semibold text-amber-400">{t.nav.demoMode}</div>
             <div className="text-[10px] text-amber-400/60 mt-0.5">v1.0 demo • sample leads</div>
           </div>
         </div>

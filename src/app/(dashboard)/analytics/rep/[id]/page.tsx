@@ -11,6 +11,7 @@ import { ScoreRing } from '@/components/common/ScoreRing'
 import { AnimatedNumber } from '@/components/common/AnimatedNumber'
 import { LoadingSkeleton } from '@/components/common/LoadingSkeleton'
 import { getInitials, getAvatarGradient, formatDate, formatDuration } from '@/lib/utils'
+import { useLocale } from '@/hooks/useLocale'
 
 const COLORS = ['#6366f1', '#7c3aed', '#06b6d4', '#ec4899', '#f59e0b']
 
@@ -48,6 +49,7 @@ export default function RepAnalyticsPage() {
   const router = useRouter()
   const repId = params.id as string
 
+  const { t } = useLocale()
   const { data, isLoading } = useRepAnalytics(repId)
 
   if (isLoading) {
@@ -81,7 +83,7 @@ export default function RepAnalyticsPage() {
           }}
         >
           <ArrowLeft size={14} />
-          Analytics
+          {t.analytics.title}
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -109,10 +111,10 @@ export default function RepAnalyticsPage() {
 
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
-        <KPICard title="Total Calls" value={kpis.totalCalls} icon={<Phone size={18} />} color="#6366f1" subtitle="recordings" />
-        <KPICard title="Reviewed" value={kpis.reviewedCalls} icon={<CheckCircle size={18} />} color="#10b981" subtitle="calls analyzed" />
-        <KPICard title="Avg Score" value={kpis.avgScore} suffix="%" icon={<TrendingUp size={18} />} color="#7c3aed" subtitle="weighted" />
-        <KPICard title="Pass Rate" value={kpis.passRate} suffix="%" icon={<CheckCircle size={18} />} color="#f59e0b" subtitle="scoring ≥70%" />
+        <KPICard title={t.analytics.kpi.totalReviews} value={kpis.totalCalls} icon={<Phone size={18} />} color="#6366f1" subtitle={t.leadDetail.calls_few} />
+        <KPICard title={t.leads.status.REVIEWED} value={kpis.reviewedCalls} icon={<CheckCircle size={18} />} color="#10b981" subtitle={t.analytics.kpi.analyzed} />
+        <KPICard title={t.analytics.kpi.avgScore} value={kpis.avgScore} suffix="%" icon={<TrendingUp size={18} />} color="#7c3aed" subtitle={t.analytics.kpi.acrossAllReps} />
+        <KPICard title={t.analytics.kpi.passRate} value={kpis.passRate} suffix="%" icon={<CheckCircle size={18} />} color="#f59e0b" subtitle={t.analytics.kpi.scoringAbove} />
       </div>
 
       {/* Charts row */}
@@ -120,7 +122,7 @@ export default function RepAnalyticsPage() {
         {/* Score trend */}
         <div style={{ background: '#f1f5f9', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 12, padding: '20px' }}>
           <h3 style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', margin: '0 0 16px' }}>
-            Score Trend (Last 30 days)
+            {t.analytics.scoreTrend}
           </h3>
           {filteredTrend.length > 1 ? (
             <ResponsiveContainer width="100%" height={220}>
@@ -141,7 +143,7 @@ export default function RepAnalyticsPage() {
             </ResponsiveContainer>
           ) : (
             <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <p style={{ color: '#64748b', fontSize: 13 }}>Not enough data yet</p>
+              <p style={{ color: '#64748b', fontSize: 13 }}>{t.analytics.notEnoughData}</p>
             </div>
           )}
         </div>
@@ -180,10 +182,10 @@ export default function RepAnalyticsPage() {
         <div style={{ background: '#f1f5f9', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 12, padding: '20px' }}>
           <h3 style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
             <AlertCircle size={14} color="#ef4444" />
-            Top Weak Points
+            {t.analytics.topFailingCriteria}
           </h3>
           {failingItems.length === 0 ? (
-            <div style={{ padding: '32px', textAlign: 'center', color: '#64748b', fontSize: 13 }}>No failing items found</div>
+            <div style={{ padding: '32px', textAlign: 'center', color: '#64748b', fontSize: 13 }}>{t.analytics.noFailingItems}</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {failingItems.map((item: any, i: number) => (

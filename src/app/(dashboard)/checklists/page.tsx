@@ -14,6 +14,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { Plus, Trash2, GripVertical, Star, Copy, ClipboardList, Save, Loader2 } from 'lucide-react'
 import { useChecklists, useCreateChecklist, useUpdateChecklist, useDeleteChecklist } from '@/hooks/useChecklists'
 import { LoadingSkeleton } from '@/components/common/LoadingSkeleton'
+import { useLocale } from '@/hooks/useLocale'
 
 interface ChecklistItem {
   id?: string
@@ -88,21 +89,21 @@ function SortableItem({
 
         {/* Type toggle */}
         <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-          {(['YES_NO', 'SCORE'] as const).map((t) => (
+          {(['YES_NO', 'SCORE'] as const).map((typeOpt) => (
             <button
-              key={t}
-              onClick={() => onChange(item._uid, { type: t })}
+              key={typeOpt}
+              onClick={() => onChange(item._uid, { type: typeOpt })}
               disabled={disabled}
               style={{
                 padding: '4px 8px', borderRadius: 5, fontSize: 10, fontWeight: 500,
                 cursor: disabled ? 'default' : 'pointer',
-                background: item.type === t ? 'rgba(99,102,241,0.2)' : 'transparent',
-                border: item.type === t ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(0,0,0,0.06)',
-                color: item.type === t ? '#a5b4fc' : '#64748b',
+                background: item.type === typeOpt ? 'rgba(99,102,241,0.2)' : 'transparent',
+                border: item.type === typeOpt ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(0,0,0,0.06)',
+                color: item.type === typeOpt ? '#a5b4fc' : '#64748b',
                 transition: 'all 0.12s',
               }}
             >
-              {t === 'YES_NO' ? 'Yes/No' : 'Score'}
+              {typeOpt === 'YES_NO' ? 'Yes/No' : 'Score'}
             </button>
           ))}
         </div>
@@ -140,6 +141,7 @@ function SortableItem({
 }
 
 export default function ChecklistsPage() {
+  const { t } = useLocale()
   const { data: checklists = [], isLoading } = useChecklists()
   const createChecklist = useCreateChecklist()
   const updateChecklist = useUpdateChecklist()
@@ -225,7 +227,7 @@ export default function ChecklistsPage() {
     try {
       await updateChecklist.mutateAsync({ id: selectedId, data })
       setIsDirty(false)
-      toast.success('Checklist saved!')
+      toast.success(t.checklists.saved)
     } catch {
       toast.error('Failed to save checklist')
     }
@@ -266,11 +268,11 @@ export default function ChecklistsPage() {
 
   async function handleDelete() {
     if (!selectedId) return
-    if (!confirm('Delete this checklist? This cannot be undone.')) return
+    if (!confirm(t.checklists.confirmDelete)) return
     try {
       await deleteChecklist.mutateAsync(selectedId)
       setSelectedId(null)
-      toast.success('Checklist deleted')
+      toast.success(t.checklists.deleted)
     } catch {
       toast.error('Failed to delete checklist')
     }
@@ -292,7 +294,7 @@ export default function ChecklistsPage() {
       }}>
         <div style={{ padding: '20px 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <h1 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>Checklists</h1>
+            <h1 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>{t.checklists.title}</h1>
             <button
               onClick={handleCreate}
               style={{
@@ -336,7 +338,7 @@ export default function ChecklistsPage() {
                 )}
               </div>
               <div style={{ fontSize: 11, color: '#64748b', marginTop: 3, marginLeft: 22 }}>
-                {(checklist.items || []).length} items
+                {(checklist.items || []).length} {t.checklists.items}
               </div>
             </div>
           ))}
@@ -383,7 +385,7 @@ export default function ChecklistsPage() {
                     color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
                   }}
                 >
-                  <Trash2 size={12} /> Delete
+                  <Trash2 size={12} /> {t.checklists.delete}
                 </button>
                 <button
                   onClick={handleSave}
@@ -399,7 +401,7 @@ export default function ChecklistsPage() {
                   }}
                 >
                   {updateChecklist.isPending ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-                  Save
+                  {updateChecklist.isPending ? t.checklists.saving : t.checklists.save}
                 </button>
               </div>
             </div>
@@ -450,10 +452,10 @@ export default function ChecklistsPage() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Criteria ({editItems.length})
+                  {t.review.criteria} ({editItems.length})
                 </div>
                 <div style={{ display: 'flex', gap: 8, fontSize: 11, color: '#64748b' }}>
-                  <span>Drag to reorder</span>
+                  <span>{t.checklists.dragToReorder}</span>
                 </div>
               </div>
 

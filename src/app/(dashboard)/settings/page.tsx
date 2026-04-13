@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Settings2, Save, Loader2, Shield, Bot, Sliders, Link } from 'lucide-react'
 import { useChecklists } from '@/hooks/useChecklists'
+import { useLocale } from '@/hooks/useLocale'
 
 interface SettingsData {
   id: number
@@ -16,6 +17,7 @@ interface SettingsData {
 }
 
 export default function SettingsPage() {
+  const { t } = useLocale()
   const { data: checklistsData } = useChecklists()
   const checklists = Array.isArray(checklistsData) ? checklistsData : []
   const [settings, setSettings] = useState<SettingsData | null>(null)
@@ -39,9 +41,9 @@ export default function SettingsPage() {
         body: JSON.stringify(settings),
       })
       if (!res.ok) throw new Error()
-      toast.success('Settings saved successfully!')
+      toast.success(t.settings.saved)
     } catch {
-      toast.error('Failed to save settings')
+      toast.error(t.settings.saveError)
     } finally {
       setIsSaving(false)
     }
@@ -94,10 +96,10 @@ export default function SettingsPage() {
           </div>
           <div>
             <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', margin: 0, letterSpacing: '-0.3px' }}>
-              Settings
+              {t.settings.title}
             </h1>
             <p style={{ fontSize: 12, color: '#64748b', margin: 0, marginTop: 1 }}>
-              Platform configuration
+              {t.settings.subtitle}
             </p>
           </div>
         </div>
@@ -113,7 +115,7 @@ export default function SettingsPage() {
           }}
         >
           {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-          {isSaving ? 'Saving...' : 'Save Changes'}
+          {isSaving ? t.settings.saving : t.settings.save}
         </button>
       </div>
 
@@ -122,7 +124,7 @@ export default function SettingsPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
           <Link size={15} color="#6366f1" />
           <h2 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', margin: 0 }}>
-            Bitrix24 Integration
+            {t.settings.bitrix24}
           </h2>
           <span style={{
             fontSize: 10, padding: '2px 8px', borderRadius: 20,
@@ -135,7 +137,7 @@ export default function SettingsPage() {
 
         <div style={{ marginBottom: 14 }}>
           <label style={{ display: 'block', fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
-            Webhook URL
+            {t.settings.webhookUrl}
           </label>
           <input
             type="url"
@@ -163,14 +165,14 @@ export default function SettingsPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
           <Bot size={15} color="#6366f1" />
           <h2 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', margin: 0 }}>
-            AI Configuration
+            {t.settings.aiConfig}
           </h2>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
           <div>
             <label style={{ display: 'block', fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
-              AI Provider
+              {t.settings.aiProvider}
             </label>
             <select
               value={settings.aiProvider}
@@ -185,7 +187,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
-              Model
+              {t.settings.aiModel}
             </label>
             <select
               value={settings.aiModel}

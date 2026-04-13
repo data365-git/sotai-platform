@@ -9,18 +9,21 @@ import { StatusBadge } from '@/components/common/StatusBadge'
 import { ScorePill } from '@/components/common/ScorePill'
 import { SkeletonTable } from '@/components/common/LoadingSkeleton'
 import { formatDuration, formatDate, getInitials, getAvatarGradient } from '@/lib/utils'
+import { useLocale } from '@/hooks/useLocale'
 
 type StatusFilter = '' | 'NOT_REVIEWED' | 'AI_READY' | 'REVIEWED'
 
-const STATUS_OPTIONS = [
-  { value: '' as StatusFilter, label: 'All' },
-  { value: 'NOT_REVIEWED' as StatusFilter, label: 'Not Reviewed' },
-  { value: 'AI_READY' as StatusFilter, label: 'AI Ready' },
-  { value: 'REVIEWED' as StatusFilter, label: 'Reviewed' },
-]
-
 export default function LeadsPage() {
   const router = useRouter()
+  const { t } = useLocale()
+
+  const STATUS_OPTIONS = [
+    { value: '' as StatusFilter, label: 'All' },
+    { value: 'NOT_REVIEWED' as StatusFilter, label: t.leads.status.NOT_REVIEWED },
+    { value: 'AI_READY' as StatusFilter, label: t.leads.status.AI_READY },
+    { value: 'REVIEWED' as StatusFilter, label: t.leads.status.REVIEWED },
+  ]
+
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [repId, setRepId] = useState('')
@@ -77,10 +80,10 @@ export default function LeadsPage() {
           </div>
           <div>
             <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', margin: 0, letterSpacing: '-0.3px' }}>
-              Leads
+              {t.leads.title}
             </h1>
             <p style={{ fontSize: 12, color: '#64748b', margin: 0, marginTop: 1 }}>
-              Sales call quality reviews
+              {t.leads.subtitle}
             </p>
           </div>
           {!isLoading && leads && (
@@ -104,7 +107,7 @@ export default function LeadsPage() {
             }}
           >
             <RefreshCw size={14} />
-            <span>Refresh</span>
+            <span>{t.leads.refresh}</span>
           </button>
           <div style={{ position: 'relative' }}>
             <button
@@ -118,7 +121,7 @@ export default function LeadsPage() {
                 cursor: 'not-allowed', opacity: 0.6,
               }}
             >
-              Sync from Bitrix24
+              {t.leads.syncBitrix}
             </button>
           </div>
         </div>
@@ -131,7 +134,7 @@ export default function LeadsPage() {
           <Search size={14} color="#64748b" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
           <input
             type="text"
-            placeholder="Search leads or reps..."
+            placeholder={t.leads.searchPlaceholder}
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
             style={{ ...inputStyle, width: '100%', paddingLeft: 32, boxSizing: 'border-box' }}
@@ -144,7 +147,7 @@ export default function LeadsPage() {
           onChange={(e) => setRepId(e.target.value)}
           style={{ ...inputStyle, cursor: 'pointer', minWidth: 150 }}
         >
-          <option value="">All Reps</option>
+          <option value="">{t.leads.allReps}</option>
           {(reps || []).map((rep: any) => (
             <option key={rep.id} value={rep.id}>{rep.name}</option>
           ))}
@@ -174,10 +177,10 @@ export default function LeadsPage() {
           onChange={(e) => setScoreFilter(e.target.value)}
           style={{ ...inputStyle, cursor: 'pointer', minWidth: 130 }}
         >
-          <option value="">All Scores</option>
-          <option value="high">High (≥70%)</option>
-          <option value="medium">Medium (50-69%)</option>
-          <option value="low">Low (&lt;50%)</option>
+          <option value="">{t.leads.allScores}</option>
+          <option value="high">{t.leads.scoreHigh}</option>
+          <option value="medium">{t.leads.scoreMedium}</option>
+          <option value="low">{t.leads.scoreLow}</option>
         </select>
       </div>
 
@@ -196,7 +199,7 @@ export default function LeadsPage() {
           borderBottom: '1px solid rgba(0,0,0,0.06)',
           background: 'rgba(0,0,0,0.02)',
         }}>
-          {['Lead', 'Rep', 'Call Date', 'Status', 'Score', ''].map((h, i) => (
+          {[t.leads.columns.lead, t.leads.columns.rep, t.leads.columns.callDate, t.leads.columns.status, t.leads.columns.score, ''].map((h, i) => (
             <span key={i} style={{
               fontSize: 11, fontWeight: 600, color: '#64748b',
               textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -217,12 +220,12 @@ export default function LeadsPage() {
         {!isLoading && (!leads || leads.length === 0) && (
           <div style={{ padding: '60px 20px', textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
-            <p style={{ color: '#64748b', fontSize: 14 }}>No leads found matching your filters.</p>
+            <p style={{ color: '#64748b', fontSize: 14 }}>{t.leads.noLeads}</p>
             <button
               onClick={() => { setSearch(''); setDebouncedSearch(''); setRepId(''); setStatus(''); setScoreFilter('') }}
               style={{ marginTop: 12, padding: '6px 16px', borderRadius: 8, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc', fontSize: 13, cursor: 'pointer' }}
             >
-              Clear filters
+              {t.leads.clearFilters}
             </button>
           </div>
         )}
@@ -329,7 +332,7 @@ export default function LeadsPage() {
       {!isLoading && leads && leads.length > 0 && (
         <div style={{ marginTop: 12, padding: '0 4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 12, color: '#64748b' }}>
-            Showing {leads.length} lead{leads.length !== 1 ? 's' : ''}
+            {t.leads.showing} {leads.length} {leads.length === 1 ? t.leads.lead_one : t.leads.lead_many}
           </span>
           <span style={{ fontSize: 11, background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 6, padding: '2px 8px', color: '#f59e0b' }}>
             Demo data — connect Bitrix24 to sync real leads

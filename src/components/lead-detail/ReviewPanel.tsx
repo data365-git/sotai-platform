@@ -6,6 +6,7 @@ import { Save, Lock, Unlock, ChevronDown, ChevronUp } from 'lucide-react'
 import { ScoreRing } from '@/components/common/ScoreRing'
 import { VerdictBadge } from '@/components/common/VerdictBadge'
 import { useReview } from '@/hooks/useReview'
+import { useLocale } from '@/hooks/useLocale'
 
 type VerdictType = 'pass' | 'fail' | 'unclear'
 
@@ -70,6 +71,8 @@ function ItemRow({
   isLocked: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
+  const { t } = useLocale()
+  const verdictLabels: Record<string, string> = { pass: t.review.pass, fail: t.review.fail, unclear: t.review.unclear }
 
   return (
     <div style={{
@@ -118,7 +121,7 @@ function ItemRow({
                       : '#64748b',
                   }}
                 >
-                  {v.charAt(0).toUpperCase() + v.slice(1)}
+                  {verdictLabels[v]}
                 </button>
               ))}
             </div>
@@ -133,7 +136,7 @@ function ItemRow({
             </div>
           )}
           {verdict?.manualOverride && (
-            <div style={{ fontSize: 10, color: '#f59e0b', marginTop: 4 }}>✎ Manual override</div>
+            <div style={{ fontSize: 10, color: '#f59e0b', marginTop: 4 }}>✎ {t.review.manualOverride}</div>
           )}
         </div>
       )}
@@ -142,6 +145,7 @@ function ItemRow({
 }
 
 export function ReviewPanel({ reviews, allChecklists, recordingId, leadId }: ReviewPanelProps) {
+  const { t } = useLocale()
   const defaultChecklist = allChecklists[0]
   const defaultReview = reviews[0] ?? null
 
@@ -200,7 +204,7 @@ export function ReviewPanel({ reviews, allChecklists, recordingId, leadId }: Rev
 
   const handleSave = async (lock: boolean) => {
     if (!selectedChecklistId || !recordingId) {
-      toast.error('Please select a checklist')
+      toast.error(t.review.noChecklist)
       return
     }
     try {
@@ -209,9 +213,9 @@ export function ReviewPanel({ reviews, allChecklists, recordingId, leadId }: Rev
         verdicts, summary: summary || undefined, isLocked: lock,
       })
       setIsLocked(lock)
-      toast.success(lock ? 'Review locked and saved!' : 'Draft saved successfully')
+      toast.success(lock ? t.review.lockSuccess : t.review.draftSaved)
     } catch {
-      toast.error('Failed to save review')
+      toast.error(t.review.saveError)
     }
   }
 
@@ -227,26 +231,26 @@ export function ReviewPanel({ reviews, allChecklists, recordingId, leadId }: Rev
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <ScoreRing score={computedScore} size={80} strokeWidth={7} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 8 }}>Quality Score</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 8 }}>{t.review.qualityScore}</div>
             <div style={{ display: 'flex', gap: 12 }}>
               <div>
                 <span style={{ fontSize: 18, fontWeight: 700, color: '#34d399' }}>{passCount}</span>
-                <span style={{ fontSize: 11, color: '#64748b', marginLeft: 4 }}>Pass</span>
+                <span style={{ fontSize: 11, color: '#64748b', marginLeft: 4 }}>{t.review.pass}</span>
               </div>
               <div>
                 <span style={{ fontSize: 18, fontWeight: 700, color: '#f87171' }}>{failCount}</span>
-                <span style={{ fontSize: 11, color: '#64748b', marginLeft: 4 }}>Fail</span>
+                <span style={{ fontSize: 11, color: '#64748b', marginLeft: 4 }}>{t.review.fail}</span>
               </div>
               <div>
                 <span style={{ fontSize: 18, fontWeight: 700, color: '#fbbf24' }}>{unclearCount}</span>
-                <span style={{ fontSize: 11, color: '#64748b', marginLeft: 4 }}>Unclear</span>
+                <span style={{ fontSize: 11, color: '#64748b', marginLeft: 4 }}>{t.review.unclear}</span>
               </div>
             </div>
           </div>
           {isLocked && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)' }}>
               <Lock size={11} color="#34d399" />
-              <span style={{ fontSize: 11, color: '#34d399', fontWeight: 600 }}>Reviewed</span>
+              <span style={{ fontSize: 11, color: '#34d399', fontWeight: 600 }}>{t.review.reviewed}</span>
             </div>
           )}
         </div>
@@ -255,7 +259,7 @@ export function ReviewPanel({ reviews, allChecklists, recordingId, leadId }: Rev
       {/* Checklist selector */}
       <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
         <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
-          Checklist
+          {t.review.checklist}
         </div>
         <select
           value={selectedChecklistId}
@@ -281,7 +285,7 @@ export function ReviewPanel({ reviews, allChecklists, recordingId, leadId }: Rev
       {/* Items */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 20px' }}>
         <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-          Criteria ({items.length})
+          {t.review.criteria} ({items.length})
         </div>
         {items.map((item) => (
           <ItemRow
@@ -296,13 +300,13 @@ export function ReviewPanel({ reviews, allChecklists, recordingId, leadId }: Rev
         {/* Summary */}
         <div style={{ marginTop: 16 }}>
           <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-            Summary / Feedback
+            {t.review.summaryLabel}
           </div>
           <textarea
             value={summary ?? ''}
             onChange={(e) => setSummary(e.target.value)}
             disabled={isLocked}
-            placeholder="Write a summary of this call review..."
+            placeholder={t.review.summaryPlaceholder}
             rows={4}
             style={{
               width: '100%', background: '#f8fafc',
@@ -330,7 +334,7 @@ export function ReviewPanel({ reviews, allChecklists, recordingId, leadId }: Rev
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}
           >
-            <Save size={14} />Save Draft
+            <Save size={14} />{t.review.saveDraft}
           </button>
           <button
             onClick={() => handleSave(true)}
@@ -343,7 +347,7 @@ export function ReviewPanel({ reviews, allChecklists, recordingId, leadId }: Rev
               opacity: reviewMutation.isPending ? 0.7 : 1,
             }}
           >
-            <Lock size={14} />{reviewMutation.isPending ? 'Saving...' : 'Lock & Review'}
+            <Lock size={14} />{reviewMutation.isPending ? t.review.saving : t.review.lockReview}
           </button>
         </div>
       ) : (
@@ -357,7 +361,7 @@ export function ReviewPanel({ reviews, allChecklists, recordingId, leadId }: Rev
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}
           >
-            <Unlock size={14} />Unlock to Edit
+            <Unlock size={14} />{t.review.unlock}
           </button>
         </div>
       )}
