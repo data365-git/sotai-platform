@@ -94,7 +94,7 @@ export async function GET() {
 
     for (const lead of leads) {
       for (const review of lead.reviews) {
-        const verdicts = review.verdicts as VerdictMap
+        const verdicts = review.verdicts as unknown as VerdictMap
         for (const item of review.checklist.items) {
           const v = verdicts[item.id]
           if (v && v.verdict === 'fail') {
