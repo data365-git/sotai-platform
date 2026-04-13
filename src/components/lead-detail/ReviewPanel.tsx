@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Save, Lock, Unlock, ChevronDown, ChevronUp } from 'lucide-react'
+import { Save, Lock, Unlock, ChevronDown, ChevronUp, Sparkles, Loader2 } from 'lucide-react'
 import { ScoreRing } from '@/components/common/ScoreRing'
 import { VerdictBadge } from '@/components/common/VerdictBadge'
 import { useReview } from '@/hooks/useReview'
@@ -146,6 +146,7 @@ function ItemRow({
 
 export function ReviewPanel({ reviews, allChecklists, recordingId, leadId }: ReviewPanelProps) {
   const { t } = useLocale()
+  const [isAiRunning, setIsAiRunning] = useState(false)
   const defaultChecklist = allChecklists[0]
   const defaultReview = reviews[0] ?? null
 
@@ -200,6 +201,27 @@ export function ReviewPanel({ reviews, allChecklists, recordingId, leadId }: Rev
     setVerdicts((r?.verdicts as Record<string, VerdictItem>) ?? {})
     setSummary(r?.summary ?? '')
     setIsLocked(r?.isLocked ?? false)
+  }
+
+  const handleAiReview = async () => {
+    if (!selectedChecklistId || !recordingId || isLocked) return
+    setIsAiRunning(true)
+    try {
+      const res = await fetch('/api/ai-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recordingId, checklistId: selectedChecklistId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'AI review failed')
+      setVerdicts(data.verdicts ?? {})
+      if (data.summary) setSummary(data.summary)
+      toast.success('AI review complete — check and override as needed')
+    } catch (err: any) {
+      toast.error(err.message ?? 'AI review failed')
+    } finally {
+      setIsAiRunning(false)
+    }
   }
 
   const handleSave = async (lock: boolean) => {
@@ -322,8 +344,32 @@ export function ReviewPanel({ reviews, allChecklists, recordingId, leadId }: Rev
       </div>
 
       {/* Actions */}
+      {/* AI Review button */}
+      {!isLocked && (
+        <div style={{ padding: '10px 20px 0', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+          <button
+            onClick={handleAiReview}
+            disabled={isAiRunning || !selectedChecklistId}
+            style={{
+              width: '100%', padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 500,
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(124,58,237,0.1) 100%)',
+              border: '1px solid rgba(99,102,241,0.3)',
+              color: isAiRunning ? '#94a3b8' : '#6366f1',
+              cursor: isAiRunning ? 'wait' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              transition: 'all 0.15s',
+            }}
+          >
+            {isAiRunning
+              ? <><Loader2 size={13} className="animate-spin" /> Analyzing…</>
+              : <><Sparkles size={13} /> Run AI Review</>
+            }
+          </button>
+        </div>
+      )}
+
       {!isLocked ? (
-        <div style={{ padding: '12px 20px 20px', borderTop: '1px solid rgba(0,0,0,0.06)', display: 'flex', gap: 8 }}>
+        <div style={{ padding: '10px 20px 20px', display: 'flex', gap: 8 }}>
           <button
             onClick={() => handleSave(false)}
             disabled={reviewMutation.isPending}

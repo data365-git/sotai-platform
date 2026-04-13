@@ -1,10 +1,11 @@
 'use client'
 
+import { useState } from 'react'
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
   AreaChart, Area, Cell, ReferenceLine,
 } from 'recharts'
-import { TrendingUp, Users, BarChart2, CheckCircle, AlertCircle, ChevronRight } from 'lucide-react'
+import { TrendingUp, TrendingDown, Users, BarChart2, CheckCircle, AlertCircle, ChevronRight, Minus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import { AnimatedNumber } from '@/components/common/AnimatedNumber'
@@ -13,6 +14,12 @@ import { LoadingSkeleton } from '@/components/common/LoadingSkeleton'
 import { useLocale } from '@/hooks/useLocale'
 
 const COLORS = ['#6366f1', '#7c3aed', '#06b6d4', '#ec4899', '#f59e0b', '#14b8a6']
+const PERIOD_OPTIONS = [
+  { label: '7d', value: 7 },
+  { label: '14d', value: 14 },
+  { label: '30d', value: 30 },
+  { label: '90d', value: 90 },
+]
 
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
@@ -31,8 +38,28 @@ function CustomTooltip({ active, payload, label }: any) {
   )
 }
 
-function KPICard({ title, value, suffix, icon, color, subtitle }: {
-  title: string, value: number, suffix?: string, icon: React.ReactNode, color: string, subtitle?: string
+function DeltaBadge({ delta }: { delta: number | null }) {
+  if (delta === null) return null
+  if (delta === 0) return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#64748b' }}>
+      <Minus size={10} />
+      <span>0</span>
+    </div>
+  )
+  const positive = delta > 0
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 600,
+      color: positive ? '#10b981' : '#ef4444',
+    }}>
+      {positive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+      <span>{positive ? '+' : ''}{delta}</span>
+    </div>
+  )
+}
+
+function KPICard({ title, value, suffix, icon, color, subtitle, delta }: {
+  title: string, value: number, suffix?: string, icon: React.ReactNode, color: string, subtitle?: string, delta?: number | null
 }) {
   return (
     <div style={{
@@ -40,12 +67,15 @@ function KPICard({ title, value, suffix, icon, color, subtitle }: {
       borderRadius: 12, padding: '20px 22px',
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div>
+        <div style={{ flex: 1 }}>
           <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
             {title}
           </div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.5px' }}>
-            <AnimatedNumber value={value} suffix={suffix} duration={1200} />
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.5px' }}>
+              <AnimatedNumber value={value} suffix={suffix} duration={1200} />
+            </div>
+            {delta !== undefined && <DeltaBadge delta={delta ?? null} />}
           </div>
           {subtitle && (
             <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>{subtitle}</div>
@@ -67,7 +97,8 @@ function KPICard({ title, value, suffix, icon, color, subtitle }: {
 export default function AnalyticsPage() {
   const router = useRouter()
   const { t } = useLocale()
-  const { data, isLoading } = useAnalytics()
+  const [days, setDays] = useState(30)
+  const { data, isLoading } = useAnalytics(days)
 
   if (isLoading) {
     return (
@@ -87,25 +118,50 @@ export default function AnalyticsPage() {
 
   // Filter out zero-data trend
   const filteredTrend = (scoreTrend || []).filter((d: any) => d.avgScore > 0)
+  const deltas = kpis?.deltas ?? {}
 
   return (
     <div style={{ padding: '28px 32px', minHeight: '100vh' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: 10,
-          background: 'linear-gradient(135deg, #6366f1 0%, #7c3aed 100%)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <BarChart2 size={18} color="white" />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: 'linear-gradient(135deg, #6366f1 0%, #7c3aed 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <BarChart2 size={18} color="white" />
+          </div>
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', margin: 0, letterSpacing: '-0.3px' }}>
+              {t.analytics.title}
+            </h1>
+            <p style={{ fontSize: 12, color: '#64748b', margin: 0, marginTop: 1 }}>
+              {t.analytics.subtitle}
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', margin: 0, letterSpacing: '-0.3px' }}>
-            {t.analytics.title}
-          </h1>
-          <p style={{ fontSize: 12, color: '#64748b', margin: 0, marginTop: 1 }}>
-            {t.analytics.subtitle}
-          </p>
+
+        {/* Period selector */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 4,
+          background: '#e2e8f0', borderRadius: 8, padding: 3,
+        }}>
+          {PERIOD_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setDays(opt.value)}
+              style={{
+                padding: '5px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                fontSize: 12, fontWeight: 600, transition: 'all 0.15s',
+                background: days === opt.value ? 'white' : 'transparent',
+                color: days === opt.value ? '#0f172a' : '#64748b',
+                boxShadow: days === opt.value ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -117,6 +173,7 @@ export default function AnalyticsPage() {
           icon={<Users size={18} />}
           color="#6366f1"
           subtitle={t.analytics.kpi.analyzed}
+          delta={deltas.totalCalls}
         />
         <KPICard
           title={t.analytics.kpi.avgScore}
@@ -125,6 +182,7 @@ export default function AnalyticsPage() {
           icon={<TrendingUp size={18} />}
           color="#10b981"
           subtitle={t.analytics.kpi.acrossAllReps}
+          delta={deltas.avgScore}
         />
         <KPICard
           title={t.analytics.kpi.passRate}
@@ -133,6 +191,7 @@ export default function AnalyticsPage() {
           icon={<CheckCircle size={18} />}
           color="#f59e0b"
           subtitle={t.analytics.kpi.scoringAbove}
+          delta={deltas.passRate}
         />
         <div style={{
           background: '#f1f5f9', border: '1px solid rgba(0,0,0,0.07)',
@@ -142,7 +201,7 @@ export default function AnalyticsPage() {
             {t.analytics.kpi.mostActiveRep}
           </div>
           <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
-            {kpis?.mostActiveRep?.name || kpis?.mostActiveRep || 'N/A'}
+            {kpis?.mostActiveRep?.name || 'N/A'}
           </div>
           {kpis?.mostActiveRep?.count && (
             <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>

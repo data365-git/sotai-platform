@@ -153,7 +153,7 @@ export function AudioPlayer({ audioUrl, peaks, onTimeUpdate, seekTo }: AudioPlay
 
         {/* Speed */}
         <div style={{ display: 'flex', gap: 3 }}>
-          {[0.75, 1, 1.25, 1.5].map((s) => (
+          {[0.5, 0.75, 1, 1.25, 1.5, 2].map((s) => (
             <button
               key={s}
               onClick={() => setSpeed(s)}

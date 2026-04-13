@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Phone, CheckSquare, BarChart3, Settings, Radio } from 'lucide-react'
+import { Phone, CheckSquare, BarChart3, Settings, Radio, Inbox } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { LocaleSwitcher } from './LocaleSwitcher'
 import { useLocale } from '@/hooks/useLocale'
@@ -14,6 +14,7 @@ export function Sidebar() {
   const MAIN_NAV = [
     { href: '/analytics', label: t.nav.analytics, icon: BarChart3 },
     { href: '/', label: t.nav.leads, icon: Phone },
+    { href: '/queue', label: t.nav.queue, icon: Inbox },
     { href: '/checklists', label: t.nav.checklists, icon: CheckSquare },
   ]
 

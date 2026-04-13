@@ -5,6 +5,7 @@ export const uz = {
     checklists: 'Chek-listlar',
     settings: 'Sozlamalar',
     demoMode: 'Demo rejim',
+    queue: 'Tekshirish navbati',
   },
   leads: {
     title: 'Lidlar',

@@ -7,6 +7,7 @@ export const ru: Record<string, any> = {
     checklists: 'Чек-листы',
     settings: 'Настройки',
     demoMode: 'Демо-режим',
+    queue: 'Очередь проверок',
   },
   // Leads page
   leads: {

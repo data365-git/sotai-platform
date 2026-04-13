@@ -5,6 +5,7 @@ export const en = {
     checklists: 'Checklists',
     settings: 'Settings',
     demoMode: 'Demo Mode',
+    queue: 'Review Queue',
   },
   leads: {
     title: 'Leads',
