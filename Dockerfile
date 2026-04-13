@@ -10,4 +10,4 @@ COPY . .
 RUN npm run build
 
 EXPOSE 3000
-CMD ["sh", "-c", "echo 'Starting Next.js...' && npx next start -p ${PORT:-3000} 2>&1"]
+CMD ["sh", "-xc", "echo PORT=$PORT; node -e 'console.log(\"Node:\",process.version)'; npx next start -p $PORT"]
