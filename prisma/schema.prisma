@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model SalesRep {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  avatar    String?
+  createdAt DateTime @default(now())
+
+  leads   Lead[]
+  reviews Review[]
+}
+
+model Lead {
+  id             String     @id @default(cuid())
+  name           String
+  phone          String
+  repId          String
+  rep            SalesRep   @relation(fields: [repId], references: [id])
+  callDate       DateTime
+  callDuration   Int
+  status         LeadStatus @default(NOT_REVIEWED)
+  bitrix24Id     String?
+  bitrix24Status String?
+  audioUrl       String?
+  audioPeaks     Json?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  transcript Transcript?
+  reviews    Review[]
+}
+
+enum LeadStatus {
+  NOT_REVIEWED
+  AI_READY
+  REVIEWED
+}
+
+model Transcript {
+  id                String   @id @default(cuid())
+  leadId            String   @unique
+  lead              Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  lines             Json
+  language          String   @default("uz")
+  detectedLanguages String[]
+  createdAt         DateTime @default(now())
+}
+
+model Checklist {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  isDefault   Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  items   ChecklistItem[]
+  reviews Review[]
+}
+
+model ChecklistItem {
+  id          String    @id @default(cuid())
+  checklistId String
+  checklist   Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  text        String
+  type        ItemType  @default(YES_NO)
+  weight      Float     @default(1.0)
+  order       Int
+  createdAt   DateTime  @default(now())
+
+  @@index([checklistId, order])
+}
+
+enum ItemType {
+  YES_NO
+  SCORE
+}
+
+model Review {
+  id          String    @id @default(cuid())
+  leadId      String
+  lead        Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  checklistId String
+  checklist   Checklist @relation(fields: [checklistId], references: [id])
+  reviewedBy  String?
+  reviewer    SalesRep? @relation(fields: [reviewedBy], references: [id])
+  verdicts    Json
+  score       Float
+  summary     String?
+  isLocked    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([leadId, checklistId])
+}
+
+model Settings {
+  id                 Int      @id @default(1)
+  bitrix24WebhookUrl String?
+  defaultChecklistId String?
+  aiProvider         String   @default("gemini")
+  aiModel            String   @default("gemini-1.5-pro")
+  scorePassThreshold Float    @default(70.0)
+  reviewerSignature  String?
+  updatedAt          DateTime @updatedAt
+}
