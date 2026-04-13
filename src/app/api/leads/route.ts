@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { LeadStatus } from '@prisma/client'
+import { LeadStatus, Prisma } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const dateFrom = searchParams.get('dateFrom')
     const dateTo = searchParams.get('dateTo')
 
-    const where: Parameters<typeof prisma.lead.findMany>[0]['where'] = {}
+    const where: Prisma.LeadWhereInput = {}
 
     if (search) {
       where.OR = [
