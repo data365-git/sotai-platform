@@ -11,17 +11,20 @@ export async function GET(
       where: { id },
       include: {
         rep: true,
-        transcript: true,
-        reviews: {
+        recordings: {
+          orderBy: { order: 'asc' },
           include: {
-            checklist: {
+            transcript: true,
+            reviews: {
               include: {
-                items: { orderBy: { order: 'asc' } },
+                checklist: {
+                  include: { items: { orderBy: { order: 'asc' } } },
+                },
+                reviewer: true,
               },
+              orderBy: { createdAt: 'desc' },
             },
-            reviewer: true,
           },
-          orderBy: { createdAt: 'desc' },
         },
       },
     })
@@ -32,9 +35,13 @@ export async function GET(
 
     return NextResponse.json({
       ...lead,
-      callDate: lead.callDate.toISOString(),
       createdAt: lead.createdAt.toISOString(),
       updatedAt: lead.updatedAt.toISOString(),
+      recordings: lead.recordings.map((r) => ({
+        ...r,
+        callDate: r.callDate.toISOString(),
+        createdAt: r.createdAt.toISOString(),
+      })),
     })
   } catch (error) {
     console.error('GET /api/leads/[id] error:', error)
@@ -58,7 +65,6 @@ export async function PUT(
         ...(body.phone !== undefined && { phone: body.phone }),
         ...(body.bitrix24Id !== undefined && { bitrix24Id: body.bitrix24Id }),
         ...(body.bitrix24Status !== undefined && { bitrix24Status: body.bitrix24Status }),
-        ...(body.audioUrl !== undefined && { audioUrl: body.audioUrl }),
       },
     })
 

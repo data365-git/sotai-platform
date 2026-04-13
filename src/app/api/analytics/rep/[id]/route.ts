@@ -1,14 +1,23 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { format, subDays, startOfDay, endOfDay } from 'date-fns'
 import type { VerdictMap } from '@/lib/types'
 
-export async function GET() {
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    // Fetch all leads with recordings (and their reviews) and reps
+    const { id: repId } = await params
+
+    const rep = await prisma.salesRep.findUnique({ where: { id: repId } })
+    if (!rep) {
+      return NextResponse.json({ error: 'Rep not found' }, { status: 404 })
+    }
+
     const leads = await prisma.lead.findMany({
+      where: { repId },
       include: {
-        rep: true,
         recordings: {
           include: {
             reviews: {
@@ -17,71 +26,39 @@ export async function GET() {
               },
             },
           },
+          orderBy: { callDate: 'desc' },
         },
       },
+      orderBy: { createdAt: 'desc' },
     })
 
-    // Flatten to recordings for score/trend calculations
     const allRecordings = leads.flatMap((l) =>
-      l.recordings.map((r) => ({ ...r, rep: l.rep, repId: l.repId }))
+      l.recordings.map((r) => ({ ...r, leadName: l.name, leadId: l.id }))
     )
 
     const reviewedRecordings = allRecordings.filter((r) => r.reviews.length > 0)
-
-    // KPIs
-    const totalCalls = allRecordings.length
-
     const allScores = reviewedRecordings.flatMap((r) => r.reviews.map((rev) => rev.score))
+
+    const totalCalls = allRecordings.length
     const avgScore = allScores.length > 0
       ? allScores.reduce((a, b) => a + b, 0) / allScores.length
       : 0
-
     const passRate = allScores.length > 0
       ? (allScores.filter((s) => s >= 70).length / allScores.length) * 100
       : 0
 
-    // Rep performance — keyed by repId
-    const repMap = new Map<string, { repId: string; repName: string; scores: number[]; callCount: number }>()
-    for (const recording of allRecordings) {
-      if (!repMap.has(recording.repId)) {
-        repMap.set(recording.repId, {
-          repId: recording.repId,
-          repName: recording.rep.name,
-          scores: [],
-          callCount: 0,
-        })
-      }
-      const repData = repMap.get(recording.repId)!
-      repData.callCount++
-      for (const review of recording.reviews) {
-        repData.scores.push(review.score)
-      }
-    }
-
-    const repPerformance = Array.from(repMap.values()).map((r) => ({
-      repId: r.repId,
-      repName: r.repName,
-      avgScore: r.scores.length > 0 ? r.scores.reduce((a, b) => a + b, 0) / r.scores.length : 0,
-      callCount: r.callCount,
-    }))
-
-    const mostActiveRep = [...repPerformance].sort((a, b) => b.callCount - a.callCount)[0]?.repName || 'N/A'
-    repPerformance.sort((a, b) => b.avgScore - a.avgScore)
-
-    // Score trend: last 30 days by recording callDate
+    // Score trend: last 30 days
     const scoreTrend = []
     for (let i = 29; i >= 0; i--) {
       const day = subDays(new Date(), i)
       const dayStart = startOfDay(day)
       const dayEnd = endOfDay(day)
-
       const dayScores = allRecordings
         .filter((r) => {
           const d = new Date(r.callDate)
           return d >= dayStart && d <= dayEnd
         })
         .flatMap((r) => r.reviews.map((rev) => rev.score))
-
       scoreTrend.push({
         date: format(day, 'MMM dd'),
         avgScore: dayScores.length > 0
@@ -90,9 +67,28 @@ export async function GET() {
       })
     }
 
-    // Failing items
+    // Checklist breakdown
+    const checklistMap = new Map<string, { name: string; scores: number[]; count: number }>()
+    for (const recording of reviewedRecordings) {
+      for (const review of recording.reviews) {
+        const key = review.checklistId
+        if (!checklistMap.has(key)) {
+          checklistMap.set(key, { name: review.checklist.name, scores: [], count: 0 })
+        }
+        const entry = checklistMap.get(key)!
+        entry.scores.push(review.score)
+        entry.count++
+      }
+    }
+    const checklistBreakdown = Array.from(checklistMap.values()).map((c) => ({
+      name: c.name,
+      avgScore: c.scores.length > 0 ? c.scores.reduce((a, b) => a + b, 0) / c.scores.length : 0,
+      count: c.count,
+    }))
+
+    // Failing items for this rep
     const itemFailCount = new Map<string, { itemText: string; failCount: number; checklistName: string }>()
-    for (const recording of allRecordings) {
+    for (const recording of reviewedRecordings) {
       for (const review of recording.reviews) {
         const verdicts = review.verdicts as unknown as VerdictMap
         for (const item of review.checklist.items) {
@@ -110,32 +106,37 @@ export async function GET() {
         }
       }
     }
-
     const failingItems = Array.from(itemFailCount.values())
       .sort((a, b) => b.failCount - a.failCount)
-      .slice(0, 10)
+      .slice(0, 8)
 
-    const reps = Array.from(repMap.values()).map((r) => ({
-      id: r.repId,
-      name: r.repName,
-      callCount: r.callCount,
-      avgScore: r.scores.length > 0 ? r.scores.reduce((a, b) => a + b, 0) / r.scores.length : 0,
+    // Recent calls (up to 20)
+    const recentCalls = allRecordings.slice(0, 20).map((r) => ({
+      id: r.id,
+      leadId: r.leadId,
+      leadName: r.leadName,
+      callDate: r.callDate,
+      duration: r.duration,
+      score: r.reviews[0]?.score ?? null,
+      checklistName: r.reviews[0]?.checklist?.name ?? null,
+      isLocked: r.reviews[0]?.isLocked ?? false,
     }))
 
     return NextResponse.json({
+      rep,
       kpis: {
         totalCalls,
         avgScore: Math.round(avgScore * 10) / 10,
         passRate: Math.round(passRate * 10) / 10,
-        mostActiveRep,
+        reviewedCalls: reviewedRecordings.length,
       },
-      repPerformance,
       scoreTrend,
+      checklistBreakdown,
       failingItems,
-      reps,
+      recentCalls,
     })
   } catch (error) {
-    console.error('GET /api/analytics error:', error)
+    console.error('GET /api/analytics/rep/[id] error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

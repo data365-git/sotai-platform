@@ -1,0 +1,5 @@
+export { ru } from './ru'
+export { uz } from './uz'
+export { en } from './en'
+export type { Dict } from './ru'
+export type Locale = 'ru' | 'uz' | 'en'

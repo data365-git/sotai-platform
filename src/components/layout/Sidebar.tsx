@@ -4,11 +4,15 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Phone, CheckSquare, BarChart3, Settings, Radio } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { LocaleSwitcher } from './LocaleSwitcher'
 
-const NAV_ITEMS = [
+const MAIN_NAV = [
+  { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/', label: 'Leads', icon: Phone },
   { href: '/checklists', label: 'Checklists', icon: CheckSquare },
-  { href: '/analytics', label: 'Analytics', icon: BarChart3 },
+]
+
+const BOTTOM_NAV = [
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
@@ -18,6 +22,29 @@ export function Sidebar() {
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/'
     return pathname.startsWith(href)
+  }
+
+  const NavLink = ({ href, label, icon: Icon }: { href: string; label: string; icon: React.ElementType }) => {
+    const active = isActive(href)
+    return (
+      <Link
+        href={href}
+        className={cn(
+          'group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-sm font-medium',
+          active
+            ? 'bg-accent/15 text-accent border border-accent/25 shadow-[0_0_12px_rgba(99,102,241,0.15)]'
+            : 'text-text-secondary hover:text-text-primary hover:bg-black/[0.05]'
+        )}
+      >
+        <Icon
+          className={cn(
+            'w-4 h-4 shrink-0 transition-colors',
+            active ? 'text-accent' : 'text-text-muted group-hover:text-text-secondary'
+          )}
+        />
+        {label}
+      </Link>
+    )
   }
 
   return (
@@ -33,40 +60,22 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* Nav */}
+      {/* Main nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = isActive(href)
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                'group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-sm font-medium',
-                active
-                  ? 'bg-accent/15 text-accent border border-accent/25 shadow-[0_0_12px_rgba(99,102,241,0.15)]'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-black/[0.05]'
-              )}
-            >
-              <Icon
-                className={cn(
-                  'w-4 h-4 shrink-0 transition-colors',
-                  active ? 'text-accent' : 'text-text-muted group-hover:text-text-secondary'
-                )}
-              />
-              {label}
-            </Link>
-          )
-        })}
+        {MAIN_NAV.map((item) => <NavLink key={item.href} {...item} />)}
       </nav>
 
-      {/* Bottom badge */}
-      <div className="px-4 py-4 border-t border-black/[0.06]">
+      {/* Bottom section: locale switcher + Settings + Demo badge */}
+      <div className="px-3 py-3 border-t border-black/[0.06] space-y-2">
+        <div className="px-1">
+          <LocaleSwitcher />
+        </div>
+        {BOTTOM_NAV.map((item) => <NavLink key={item.href} {...item} />)}
         <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
           <div>
             <div className="text-xs font-semibold text-amber-400">Demo Mode</div>
-            <div className="text-[10px] text-amber-400/60 mt-0.5">v1.0 demo • 18 sample leads</div>
+            <div className="text-[10px] text-amber-400/60 mt-0.5">v1.0 demo • sample leads</div>
           </div>
         </div>
       </div>

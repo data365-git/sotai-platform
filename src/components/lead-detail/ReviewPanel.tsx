@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Save, Lock, Unlock, ChevronDown, ChevronUp } from 'lucide-react'
 import { ScoreRing } from '@/components/common/ScoreRing'
@@ -40,10 +40,10 @@ interface Review {
 }
 
 interface ReviewPanelProps {
-  review: Review | null | undefined
+  reviews: Review[]
   allChecklists: Checklist[]
+  recordingId: string
   leadId: string
-  onChecklistChange?: (checklistId: string) => void
 }
 
 function calcScore(verdicts: Record<string, { verdict: string }>, items: ChecklistItem[]): number {
@@ -87,9 +87,7 @@ function ItemRow({
         <span style={{ fontSize: 10, color: '#64748b', flexShrink: 0 }}>
           ×{item.weight}
         </span>
-        {verdict && (
-          <VerdictBadge verdict={verdict.verdict} />
-        )}
+        {verdict && <VerdictBadge verdict={verdict.verdict} />}
         <button
           onClick={() => setExpanded(!expanded)}
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 2, flexShrink: 0 }}
@@ -100,7 +98,6 @@ function ItemRow({
 
       {expanded && (
         <div style={{ padding: '0 12px 12px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-          {/* Verdict buttons */}
           {!isLocked && (
             <div style={{ display: 'flex', gap: 6, marginTop: 10, marginBottom: 8 }}>
               {(['pass', 'fail', 'unclear'] as VerdictType[]).map((v) => (
@@ -126,24 +123,17 @@ function ItemRow({
               ))}
             </div>
           )}
-
-          {/* Reasoning */}
           {verdict?.reasoning && (
             <div style={{
               fontSize: 12, color: '#475569', padding: '8px 10px',
               background: 'rgba(99,102,241,0.04)', borderRadius: 6,
-              borderLeft: '2px solid rgba(99,102,241,0.3)',
-              lineHeight: 1.5,
+              borderLeft: '2px solid rgba(99,102,241,0.3)', lineHeight: 1.5,
             }}>
               {verdict.reasoning}
             </div>
           )}
-
-          {/* Manual override indicator */}
           {verdict?.manualOverride && (
-            <div style={{ fontSize: 10, color: '#f59e0b', marginTop: 4 }}>
-              ✎ Manual override
-            </div>
+            <div style={{ fontSize: 10, color: '#f59e0b', marginTop: 4 }}>✎ Manual override</div>
           )}
         </div>
       )}
@@ -151,15 +141,35 @@ function ItemRow({
   )
 }
 
-export function ReviewPanel({ review, allChecklists, leadId, onChecklistChange }: ReviewPanelProps) {
+export function ReviewPanel({ reviews, allChecklists, recordingId, leadId }: ReviewPanelProps) {
+  const defaultChecklist = allChecklists[0]
+  const defaultReview = reviews[0] ?? null
+
   const [selectedChecklistId, setSelectedChecklistId] = useState(
-    review?.checklistId || allChecklists[0]?.id || ''
+    defaultReview?.checklistId ?? defaultChecklist?.id ?? ''
   )
+
+  const activeReview = useMemo(
+    () => reviews.find((r) => r.checklistId === selectedChecklistId) ?? null,
+    [reviews, selectedChecklistId]
+  )
+
   const [verdicts, setVerdicts] = useState<Record<string, VerdictItem>>(
-    (review?.verdicts as Record<string, VerdictItem>) || {}
+    (activeReview?.verdicts as Record<string, VerdictItem>) ?? {}
   )
-  const [summary, setSummary] = useState(review?.summary || '')
-  const [isLocked, setIsLocked] = useState(review?.isLocked || false)
+  const [summary, setSummary] = useState(activeReview?.summary ?? '')
+  const [isLocked, setIsLocked] = useState(activeReview?.isLocked ?? false)
+
+  // Sync state when recording changes or review loads
+  useEffect(() => {
+    setSelectedChecklistId(defaultReview?.checklistId ?? defaultChecklist?.id ?? '')
+  }, [recordingId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    setVerdicts((activeReview?.verdicts as Record<string, VerdictItem>) ?? {})
+    setSummary(activeReview?.summary ?? '')
+    setIsLocked(activeReview?.isLocked ?? false)
+  }, [activeReview])
 
   const reviewMutation = useReview()
 
@@ -176,28 +186,26 @@ export function ReviewPanel({ review, allChecklists, leadId, onChecklistChange }
   const handleVerdictChange = useCallback((id: string, updates: Partial<VerdictItem>) => {
     setVerdicts((prev) => ({
       ...prev,
-      [id]: { ...(prev[id] || { verdict: 'unclear', reasoning: '', manualOverride: false }), ...updates },
+      [id]: { ...(prev[id] ?? { verdict: 'unclear', reasoning: '', manualOverride: false }), ...updates },
     }))
   }, [])
 
   const handleChecklistChange = (id: string) => {
     setSelectedChecklistId(id)
-    onChecklistChange?.(id)
-    // Find review for this checklist
-    const r = review?.checklistId === id ? review : null
-    setVerdicts((r?.verdicts as Record<string, VerdictItem>) || {})
-    setSummary(r?.summary || '')
-    setIsLocked(r?.isLocked || false)
+    const r = reviews.find((rev) => rev.checklistId === id) ?? null
+    setVerdicts((r?.verdicts as Record<string, VerdictItem>) ?? {})
+    setSummary(r?.summary ?? '')
+    setIsLocked(r?.isLocked ?? false)
   }
 
   const handleSave = async (lock: boolean) => {
-    if (!selectedChecklistId) {
+    if (!selectedChecklistId || !recordingId) {
       toast.error('Please select a checklist')
       return
     }
     try {
       await reviewMutation.mutateAsync({
-        leadId, checklistId: selectedChecklistId,
+        recordingId, leadId, checklistId: selectedChecklistId,
         verdicts, summary: summary || undefined, isLocked: lock,
       })
       setIsLocked(lock)
@@ -207,21 +215,19 @@ export function ReviewPanel({ review, allChecklists, leadId, onChecklistChange }
     }
   }
 
-  const items = selectedChecklist?.items || []
+  const items = selectedChecklist?.items ?? []
   const passCount = items.filter((it) => verdicts[it.id]?.verdict === 'pass').length
   const failCount = items.filter((it) => verdicts[it.id]?.verdict === 'fail').length
   const unclearCount = items.filter((it) => verdicts[it.id]?.verdict === 'unclear').length
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Score ring + stats */}
+      {/* Score ring */}
       <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <ScoreRing score={computedScore} size={80} strokeWidth={7} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 8 }}>
-              Quality Score
-            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 8 }}>Quality Score</div>
             <div style={{ display: 'flex', gap: 12 }}>
               <div>
                 <span style={{ fontSize: 18, fontWeight: 700, color: '#34d399' }}>{passCount}</span>
@@ -265,7 +271,9 @@ export function ReviewPanel({ review, allChecklists, leadId, onChecklistChange }
           }}
         >
           {allChecklists.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
+            <option key={c.id} value={c.id}>
+              {c.name}{reviews.find((r) => r.checklistId === c.id) ? ' ✓' : ''}
+            </option>
           ))}
         </select>
       </div>
@@ -291,7 +299,7 @@ export function ReviewPanel({ review, allChecklists, leadId, onChecklistChange }
             Summary / Feedback
           </div>
           <textarea
-            value={summary || ''}
+            value={summary ?? ''}
             onChange={(e) => setSummary(e.target.value)}
             disabled={isLocked}
             placeholder="Write a summary of this call review..."
@@ -310,58 +318,46 @@ export function ReviewPanel({ review, allChecklists, leadId, onChecklistChange }
       </div>
 
       {/* Actions */}
-      {!isLocked && (
-        <div style={{
-          padding: '12px 20px 20px',
-          borderTop: '1px solid rgba(0,0,0,0.06)',
-          display: 'flex', gap: 8,
-        }}>
+      {!isLocked ? (
+        <div style={{ padding: '12px 20px 20px', borderTop: '1px solid rgba(0,0,0,0.06)', display: 'flex', gap: 8 }}>
           <button
             onClick={() => handleSave(false)}
             disabled={reviewMutation.isPending}
             style={{
               flex: 1, padding: '9px 0', borderRadius: 8, fontSize: 13, fontWeight: 500,
-              background: 'rgba(0,0,0,0.05)',
-              border: '1px solid rgba(0,0,0,0.1)',
+              background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)',
               color: '#475569', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}
           >
-            <Save size={14} />
-            Save Draft
+            <Save size={14} />Save Draft
           </button>
           <button
             onClick={() => handleSave(true)}
             disabled={reviewMutation.isPending}
             style={{
               flex: 1, padding: '9px 0', borderRadius: 8, fontSize: 13, fontWeight: 600,
-              background: '#6366f1',
-              border: '1px solid rgba(99,102,241,0.5)',
+              background: '#6366f1', border: '1px solid rgba(99,102,241,0.5)',
               color: 'white', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               opacity: reviewMutation.isPending ? 0.7 : 1,
             }}
           >
-            <Lock size={14} />
-            {reviewMutation.isPending ? 'Saving...' : 'Lock & Review'}
+            <Lock size={14} />{reviewMutation.isPending ? 'Saving...' : 'Lock & Review'}
           </button>
         </div>
-      )}
-
-      {isLocked && (
+      ) : (
         <div style={{ padding: '12px 20px 20px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
           <button
             onClick={() => setIsLocked(false)}
             style={{
               width: '100%', padding: '9px 0', borderRadius: 8, fontSize: 13, fontWeight: 500,
-              background: 'transparent',
-              border: '1px solid rgba(0,0,0,0.1)',
+              background: 'transparent', border: '1px solid rgba(0,0,0,0.1)',
               color: '#475569', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}
           >
-            <Unlock size={14} />
-            Unlock to Edit
+            <Unlock size={14} />Unlock to Edit
           </button>
         </div>
       )}

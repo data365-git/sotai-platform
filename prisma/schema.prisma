@@ -23,18 +23,13 @@ model Lead {
   phone          String
   repId          String
   rep            SalesRep   @relation(fields: [repId], references: [id])
-  callDate       DateTime
-  callDuration   Int
   status         LeadStatus @default(NOT_REVIEWED)
   bitrix24Id     String?
   bitrix24Status String?
-  audioUrl       String?
-  audioPeaks     Json?
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
-  transcript Transcript?
-  reviews    Review[]
+  recordings CallRecording[]
 }
 
 enum LeadStatus {
@@ -43,14 +38,31 @@ enum LeadStatus {
   REVIEWED
 }
 
+model CallRecording {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  audioUrl  String?
+  audioPeaks Json?
+  duration  Int      @default(0)
+  callDate  DateTime
+  order     Int      @default(1)
+  createdAt DateTime @default(now())
+
+  transcript Transcript?
+  reviews    Review[]
+
+  @@index([leadId, order])
+}
+
 model Transcript {
-  id                String   @id @default(cuid())
-  leadId            String   @unique
-  lead              Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  id                String        @id @default(cuid())
+  recordingId       String        @unique
+  recording         CallRecording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
   lines             Json
-  language          String   @default("uz")
+  language          String        @default("uz")
   detectedLanguages String[]
-  createdAt         DateTime @default(now())
+  createdAt         DateTime      @default(now())
 }
 
 model Checklist {
@@ -84,21 +96,21 @@ enum ItemType {
 }
 
 model Review {
-  id          String    @id @default(cuid())
-  leadId      String
-  lead        Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  id          String        @id @default(cuid())
+  recordingId String
+  recording   CallRecording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
   checklistId String
-  checklist   Checklist @relation(fields: [checklistId], references: [id])
+  checklist   Checklist     @relation(fields: [checklistId], references: [id])
   reviewedBy  String?
-  reviewer    SalesRep? @relation(fields: [reviewedBy], references: [id])
+  reviewer    SalesRep?     @relation(fields: [reviewedBy], references: [id])
   verdicts    Json
   score       Float
   summary     String?
-  isLocked    Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  isLocked    Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
-  @@unique([leadId, checklistId])
+  @@unique([recordingId, checklistId])
 }
 
 model Settings {

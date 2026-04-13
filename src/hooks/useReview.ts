@@ -4,6 +4,7 @@ export function useReview() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (data: {
+      recordingId: string
       leadId: string
       checklistId: string
       verdicts: Record<string, any>

@@ -33,50 +33,62 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Date filter: filter leads that have at least one recording in range
     if (dateFrom || dateTo) {
-      where.callDate = {}
-      if (dateFrom) where.callDate.gte = new Date(dateFrom)
+      const callDateFilter: Prisma.DateTimeFilter = {}
+      if (dateFrom) callDateFilter.gte = new Date(dateFrom)
       if (dateTo) {
         const end = new Date(dateTo)
         end.setHours(23, 59, 59, 999)
-        where.callDate.lte = end
+        callDateFilter.lte = end
       }
+      where.recordings = { some: { callDate: callDateFilter } }
     }
 
     const leads = await prisma.lead.findMany({
       where,
       include: {
         rep: { select: { id: true, name: true, email: true, avatar: true } },
-        reviews: {
-          select: {
-            score: true,
-            checklist: { select: { name: true } },
-          },
-          orderBy: { createdAt: 'desc' },
+        recordings: {
+          orderBy: { callDate: 'desc' },
           take: 1,
+          include: {
+            reviews: {
+              select: { score: true, checklist: { select: { name: true } } },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
+          },
         },
       },
-      orderBy: { callDate: 'desc' },
+      orderBy: { createdAt: 'desc' },
     })
 
-    // Filter by score if needed (after fetch since score is on review)
     let result = leads.map((lead) => {
-      const latestReview = lead.reviews[0]
+      const latestRecording = lead.recordings[0] ?? null
+      const latestReview = latestRecording?.reviews[0] ?? null
       return {
         id: lead.id,
         name: lead.name,
         phone: lead.phone,
         repId: lead.repId,
         rep: lead.rep,
-        callDate: lead.callDate.toISOString(),
-        callDuration: lead.callDuration,
+        latestCallDate: latestRecording?.callDate.toISOString() ?? null,
+        totalDuration: 0, // computed below if needed
+        recordingCount: lead.recordings.length,
         status: lead.status,
         bitrix24Id: lead.bitrix24Id,
         bitrix24Status: lead.bitrix24Status,
-        audioUrl: lead.audioUrl,
-        latestScore: latestReview ? latestReview.score : null,
-        latestChecklistName: latestReview ? latestReview.checklist.name : null,
+        latestScore: latestReview?.score ?? null,
+        latestChecklistName: latestReview?.checklist.name ?? null,
       }
+    })
+
+    // Sort by latest call date descending
+    result.sort((a, b) => {
+      if (!a.latestCallDate) return 1
+      if (!b.latestCallDate) return -1
+      return new Date(b.latestCallDate).getTime() - new Date(a.latestCallDate).getTime()
     })
 
     if (scoreMin !== null) {
@@ -96,9 +108,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, phone, repId, callDate, callDuration, audioUrl } = body
+    const { name, phone, repId } = body
 
-    if (!name || !phone || !repId || !callDate) {
+    if (!name || !phone || !repId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
@@ -107,9 +119,6 @@ export async function POST(request: NextRequest) {
         name,
         phone,
         repId,
-        callDate: new Date(callDate),
-        callDuration: callDuration || 0,
-        audioUrl: audioUrl || null,
         status: LeadStatus.NOT_REVIEWED,
       },
       include: { rep: true },

@@ -4,7 +4,8 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
   AreaChart, Area, Cell, ReferenceLine,
 } from 'recharts'
-import { TrendingUp, Users, BarChart2, CheckCircle, AlertCircle } from 'lucide-react'
+import { TrendingUp, Users, BarChart2, CheckCircle, AlertCircle, ChevronRight } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import { AnimatedNumber } from '@/components/common/AnimatedNumber'
 import { ScoreRing } from '@/components/common/ScoreRing'
@@ -63,6 +64,7 @@ function KPICard({ title, value, suffix, icon, color, subtitle }: {
 }
 
 export default function AnalyticsPage() {
+  const router = useRouter()
   const { data, isLoading } = useAnalytics()
 
   if (isLoading) {
@@ -276,22 +278,26 @@ export default function AnalyticsPage() {
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {(reps || []).map((rep: any, i: number) => (
-              <div key={rep.id} style={{
-                display: 'flex', alignItems: 'center', gap: 14,
-                padding: '10px 14px',
-                background: 'rgba(0,0,0,0.02)', borderRadius: 8,
-                border: '1px solid rgba(0,0,0,0.04)',
-              }}>
-                {/* Mini score ring */}
+              <div
+                key={rep.id}
+                onClick={() => router.push(`/analytics/rep/${rep.id}`)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '10px 14px',
+                  background: 'rgba(0,0,0,0.02)', borderRadius: 8,
+                  border: '1px solid rgba(0,0,0,0.04)',
+                  cursor: 'pointer', transition: 'background 0.12s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(99,102,241,0.06)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(0,0,0,0.02)')}
+              >
                 <ScoreRing score={rep.avgScore} size={48} strokeWidth={5} />
-
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{rep.name}</div>
                   <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
                     {rep.callCount} call{rep.callCount !== 1 ? 's' : ''} reviewed
                   </div>
                 </div>
-
                 <div style={{
                   padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
                   background: COLORS[i % COLORS.length] + '20',
@@ -300,6 +306,7 @@ export default function AnalyticsPage() {
                 }}>
                   {Math.round(rep.avgScore)}%
                 </div>
+                <ChevronRight size={14} color="#64748b" />
               </div>
             ))}
           </div>

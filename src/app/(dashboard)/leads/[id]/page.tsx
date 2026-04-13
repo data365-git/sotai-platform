@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { ArrowLeft, Phone, Calendar, Clock, ExternalLink, User } from 'lucide-react'
+import { ArrowLeft, Phone, ExternalLink, Phone as PhoneIcon, Calendar, Clock } from 'lucide-react'
 import { useLeadDetail } from '@/hooks/useLeadDetail'
 import { useChecklists } from '@/hooks/useChecklists'
 import { TranscriptPanel } from '@/components/lead-detail/TranscriptPanel'
@@ -25,6 +25,7 @@ export default function LeadDetailPage() {
   const { data: lead, isLoading: leadLoading } = useLeadDetail(id)
   const { data: allChecklists = [] } = useChecklists()
 
+  const [selectedRecordingIdx, setSelectedRecordingIdx] = useState(0)
   const [currentAudioTime, setCurrentAudioTime] = useState(0)
   const [seekTo, setSeekTo] = useState<number | null>(null)
 
@@ -34,8 +35,13 @@ export default function LeadDetailPage() {
 
   const handleTranscriptSeek = useCallback((t: number) => {
     setSeekTo(t)
-    // Reset after a tick so re-seeking same timestamp works
     setTimeout(() => setSeekTo(null), 100)
+  }, [])
+
+  const handleRecordingChange = useCallback((idx: number) => {
+    setSelectedRecordingIdx(idx)
+    setCurrentAudioTime(0)
+    setSeekTo(null)
   }, [])
 
   if (leadLoading) {
@@ -68,10 +74,19 @@ export default function LeadDetailPage() {
     )
   }
 
-  const transcript = lead.transcript
-  const transcriptLines = transcript?.lines || []
-  const reviews = lead.reviews || []
-  const review = reviews[0] || null
+  const recordings = lead.recordings ?? []
+  const selectedRecording = recordings[selectedRecordingIdx] ?? null
+  const transcript = selectedRecording?.transcript ?? null
+  const transcriptLines = transcript?.lines ?? []
+  const reviews = selectedRecording?.reviews ?? []
+
+  // Aggregate totals for left panel
+  const totalDuration = recordings.reduce((sum: number, r: any) => sum + (r.duration ?? 0), 0)
+  const latestCallDate = recordings.length > 0
+    ? recordings.reduce((latest: any, r: any) =>
+        new Date(r.callDate) > new Date(latest.callDate) ? r : latest
+      ).callDate
+    : null
 
   const panelStyle = {
     height: '100vh',
@@ -83,7 +98,6 @@ export default function LeadDetailPage() {
     <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 380px', height: '100vh', overflow: 'hidden' }}>
       {/* LEFT PANEL */}
       <div style={{ ...panelStyle, padding: '20px 20px 32px', background: '#f8fafc' }}>
-        {/* Back button */}
         <button
           onClick={() => router.push('/')}
           style={{
@@ -120,11 +134,15 @@ export default function LeadDetailPage() {
           borderRadius: 10, padding: '12px 14px', marginBottom: 16,
         }}>
           <InfoRow icon={<Phone size={12} />} label="Phone" value={lead.phone} />
-          <InfoRow icon={<Calendar size={12} />} label="Call Date" value={formatDate(lead.callDate)} />
-          <InfoRow icon={<Clock size={12} />} label="Duration" value={formatDuration(lead.callDuration)} />
+          {latestCallDate && (
+            <InfoRow icon={<Calendar size={12} />} label="Last Call" value={formatDate(latestCallDate)} />
+          )}
+          {totalDuration > 0 && (
+            <InfoRow icon={<Clock size={12} />} label="Total" value={formatDuration(totalDuration)} />
+          )}
+          <InfoRow icon={<PhoneIcon size={12} />} label="Calls" value={`${recordings.length} recording${recordings.length !== 1 ? 's' : ''}`} />
         </div>
 
-        {/* Divider */}
         <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', marginBottom: 16 }} />
 
         {/* Sales Rep */}
@@ -148,10 +166,8 @@ export default function LeadDetailPage() {
           </div>
         </div>
 
-        {/* Divider */}
         <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', marginBottom: 16 }} />
 
-        {/* Lead Status (Bitrix) */}
         {lead.bitrix24Status && (
           <div style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
@@ -161,7 +177,6 @@ export default function LeadDetailPage() {
           </div>
         )}
 
-        {/* Open in Bitrix24 */}
         <button
           disabled
           title="Connect Bitrix24 to open leads"
@@ -178,7 +193,6 @@ export default function LeadDetailPage() {
           Open in Bitrix24
         </button>
 
-        {/* Demo badge */}
         <div style={{ marginTop: 'auto', paddingTop: 32 }}>
           <div style={{
             textAlign: 'center', padding: '6px 10px', borderRadius: 8,
@@ -194,14 +208,53 @@ export default function LeadDetailPage() {
 
       {/* CENTER PANEL */}
       <div style={{ ...panelStyle, borderRight: '1px solid rgba(0,0,0,0.06)' }}>
+        {/* Recording tab strip */}
+        {recordings.length > 1 && (
+          <div style={{
+            display: 'flex', gap: 0, borderBottom: '1px solid rgba(0,0,0,0.06)',
+            overflowX: 'auto', background: '#f8fafc',
+          }}>
+            {recordings.map((rec: any, idx: number) => (
+              <button
+                key={rec.id}
+                onClick={() => handleRecordingChange(idx)}
+                style={{
+                  padding: '10px 16px', flexShrink: 0,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  borderBottom: selectedRecordingIdx === idx
+                    ? '2px solid #6366f1'
+                    : '2px solid transparent',
+                  color: selectedRecordingIdx === idx ? '#6366f1' : '#64748b',
+                  fontSize: 12, fontWeight: selectedRecordingIdx === idx ? 600 : 400,
+                  transition: 'all 0.15s',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Call {idx + 1}
+                {rec.callDate && (
+                  <span style={{ marginLeft: 6, fontSize: 11, opacity: 0.7 }}>
+                    {formatDate(rec.callDate)}
+                  </span>
+                )}
+                {rec.duration > 0 && (
+                  <span style={{ marginLeft: 4, fontSize: 10, opacity: 0.6 }}>
+                    · {formatDuration(rec.duration)}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div style={{ padding: '20px 24px 32px' }}>
-          {/* Call Recording */}
+          {/* Audio player */}
           <div style={{ marginBottom: 24 }}>
-            <SectionHeader title="Call Recording" />
-            {lead.audioUrl ? (
+            <SectionHeader title={recordings.length > 1 ? `Call ${selectedRecordingIdx + 1} Recording` : 'Call Recording'} />
+            {selectedRecording?.audioUrl ? (
               <AudioPlayer
-                audioUrl={lead.audioUrl}
-                peaks={Array.isArray(lead.audioPeaks) ? lead.audioPeaks : undefined}
+                key={selectedRecording.id}
+                audioUrl={selectedRecording.audioUrl}
+                peaks={Array.isArray(selectedRecording.audioPeaks) ? selectedRecording.audioPeaks : undefined}
                 onTimeUpdate={handleTimeUpdate}
                 seekTo={seekTo}
               />
@@ -257,11 +310,19 @@ export default function LeadDetailPage() {
           </h2>
         </div>
 
-        <ReviewPanel
-          review={review}
-          allChecklists={allChecklists}
-          leadId={id}
-        />
+        {selectedRecording ? (
+          <ReviewPanel
+            key={selectedRecording.id}
+            reviews={reviews}
+            allChecklists={allChecklists}
+            recordingId={selectedRecording.id}
+            leadId={id}
+          />
+        ) : (
+          <div style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+            No recording selected
+          </div>
+        )}
       </div>
     </div>
   )

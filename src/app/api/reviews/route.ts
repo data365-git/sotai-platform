@@ -22,14 +22,14 @@ function recalculateScore(
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const leadId = searchParams.get('leadId')
+    const recordingId = searchParams.get('recordingId')
 
-    if (!leadId) {
-      return NextResponse.json({ error: 'leadId is required' }, { status: 400 })
+    if (!recordingId) {
+      return NextResponse.json({ error: 'recordingId is required' }, { status: 400 })
     }
 
     const reviews = await prisma.review.findMany({
-      where: { leadId },
+      where: { recordingId },
       include: {
         checklist: { include: { items: { orderBy: { order: 'asc' } } } },
         reviewer: true,
@@ -47,13 +47,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { leadId, checklistId, verdicts, summary, isLocked, reviewedBy } = body
+    const { recordingId, checklistId, verdicts, summary, isLocked, reviewedBy } = body
 
-    if (!leadId || !checklistId || !verdicts) {
+    if (!recordingId || !checklistId || !verdicts) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Get checklist items for score calculation
     const checklist = await prisma.checklist.findUnique({
       where: { id: checklistId },
       include: { items: true },
@@ -65,9 +64,8 @@ export async function POST(request: NextRequest) {
 
     const score = recalculateScore(verdicts as VerdictMap, checklist.items)
 
-    // Upsert review using @@unique([leadId, checklistId])
     const review = await prisma.review.upsert({
-      where: { leadId_checklistId: { leadId, checklistId } },
+      where: { recordingId_checklistId: { recordingId, checklistId } },
       update: {
         verdicts,
         score,
@@ -77,7 +75,7 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date(),
       },
       create: {
-        leadId,
+        recordingId,
         checklistId,
         verdicts,
         score,
@@ -91,12 +89,18 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // If locked, update lead status to REVIEWED
+    // If locked, update the lead's status to REVIEWED
     if (isLocked) {
-      await prisma.lead.update({
-        where: { id: leadId },
-        data: { status: LeadStatus.REVIEWED },
+      const recording = await prisma.callRecording.findUnique({
+        where: { id: recordingId },
+        select: { leadId: true },
       })
+      if (recording) {
+        await prisma.lead.update({
+          where: { id: recording.leadId },
+          data: { status: LeadStatus.REVIEWED },
+        })
+      }
     }
 
     return NextResponse.json(review)

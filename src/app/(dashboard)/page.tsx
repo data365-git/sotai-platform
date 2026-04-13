@@ -286,13 +286,16 @@ export default function LeadsPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     <Calendar size={11} color="#64748b" />
                     <span style={{ fontSize: 13, color: '#475569' }}>
-                      {formatDate(lead.callDate)}
+                      {lead.latestCallDate ? formatDate(lead.latestCallDate) : '—'}
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
                     <Clock size={11} color="#64748b" />
                     <span style={{ fontSize: 11, color: '#64748b' }}>
-                      {formatDuration(lead.callDuration)}
+                      {lead.totalDuration ? formatDuration(lead.totalDuration) : '—'}
+                      {lead.recordingCount > 1 && (
+                        <span style={{ marginLeft: 4, color: '#94a3b8' }}>· {lead.recordingCount} calls</span>
+                      )}
                     </span>
                   </div>
                 </div>

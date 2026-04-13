@@ -1,4 +1,4 @@
-import type { Lead, SalesRep, Transcript, Review, Checklist, ChecklistItem, LeadStatus, ItemType } from '@prisma/client'
+import type { Lead, SalesRep, Transcript, Review, Checklist, ChecklistItem, CallRecording, LeadStatus, ItemType } from '@prisma/client'
 
 export type { LeadStatus, ItemType }
 
@@ -59,10 +59,14 @@ export interface AnalyticsPayload {
   reps: RepSummary[]
 }
 
-export type LeadWithRelations = Lead & {
-  rep: SalesRep
+export type CallRecordingWithRelations = CallRecording & {
   transcript: Transcript | null
   reviews: ReviewWithRelations[]
+}
+
+export type LeadWithRelations = Lead & {
+  rep: SalesRep
+  recordings: CallRecordingWithRelations[]
 }
 
 export type ReviewWithRelations = Review & {
@@ -93,12 +97,12 @@ export interface LeadListItem {
     email: string
     avatar: string | null
   }
-  callDate: string
-  callDuration: number
+  latestCallDate: string | null
+  totalDuration: number
+  recordingCount: number
   status: LeadStatus
   bitrix24Id: string | null
   bitrix24Status: string | null
-  audioUrl: string | null
   latestScore: number | null
   latestChecklistName: string | null
 }
