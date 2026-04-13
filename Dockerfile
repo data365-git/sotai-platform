@@ -10,4 +10,4 @@ COPY . .
 RUN npm run build
 
 EXPOSE 3000
-CMD ["sh", "-c", "echo 'ENTRYPOINT START'; npx prisma db push --skip-generate; echo 'PRISMA DONE'; echo 'PORT='${PORT}; npx next start -p ${PORT:-3000}; echo 'NEXT EXITED'"]
+CMD ["sh", "-c", "echo 'Starting Next.js...' && npx next start -p ${PORT:-3000} 2>&1"]
