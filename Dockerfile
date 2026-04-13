@@ -9,5 +9,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
+ENV PORT=3000
 EXPOSE 3000
-CMD ["sh", "-xc", "echo PORT=$PORT; node -e 'console.log(\"Node:\",process.version)'; npx next start -p $PORT"]
+
+CMD sh -c "npx prisma db push --skip-generate 2>&1 && npx next start -p ${PORT:-3000} 2>&1"
