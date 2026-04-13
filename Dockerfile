@@ -12,4 +12,4 @@ RUN npm run build
 ENV PORT=3000
 EXPOSE 3000
 
-CMD sh -c "npx prisma db push --skip-generate 2>&1 && npx next start -p ${PORT:-3000} 2>&1"
+CMD sh -c "npx prisma db push --accept-data-loss 2>&1 && npx next start -p ${PORT:-3000} 2>&1"
